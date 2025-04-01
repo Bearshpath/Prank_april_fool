@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Important Results</title>
+    <style>
+        /* --- Basic Styles --- */
+        body {
+            font-family: Arial, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; background-color: #f0f0f0; margin: 0; transition: background-color 0.3s; overflow: hidden; position: relative;
+        }
+        .container {
+            text-align: center; padding: 30px; background-color: white; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); max-width: 500px; position: relative; z-index: 1;
+        }
+        .dialog-box {
+            background-color: #f8f8f8; border: 2px solid #ddd; border-radius: 8px; padding: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: absolute; z-index: 5; width: 220px;
+        }
+        .dialog-box:after {
+            content: ''; position: absolute; border-width: 15px; border-style: solid; border-color: transparent;
+        }
+        .custom-emoji {
+            position: absolute; width: 200px; height: 200px; z-index: 5;
+        }
+        .check-button {
+            background-color: #1a73e8; color: white; border: none; padding: 15px 30px; font-size: 20px; border-radius: 5px; cursor: pointer; transition: transform 0.2s, background-color 0.3s; position: relative; z-index: 1;
+        }
+        .check-button:hover {
+            background-color: #1557b0; transform: scale(1.05);
+        }
+        .loading {
+            display: none; flex-direction: column; align-items: center; color: #333; padding: 20px; text-align: center; z-index: 50; /* Ensure it's above normal content */
+        }
+        .spinner {
+            border: 6px solid #f3f3f3; border-top: 6px solid #1a73e8; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin-bottom: 20px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* --- Flipbook Image Display --- */
+        #flipbook-image {
+             display: none; /* Hidden initially */
+             position: fixed;
+             top: 0;
+             left: 0;
+             width: 100%;
+             height: 100%;
+             object-fit: cover; /* Cover the screen */
+             background-color: black; /* Background during transition */
+             z-index: 1000; /* Above other content */
+        }
+
+        /* --- Prank Reveal Styles --- */
+        .prank-reveal {
+            display: none; text-align: center; padding: 20px; color: #333; z-index: 1; /* Below flipbook */
+        }
+        .prank-reveal h1 { font-size: 36px; color: #ff4081; margin-bottom: 20px; }
+        .prank-reveal p { font-size: 18px; margin-bottom: 15px; }
+        .confetti {
+             position: absolute; width: 10px; height: 10px; background-color: #ff4081; opacity: 0; pointer-events: none; z-index: 2000; /* High z-index */
+        }
+        .prank-stats {
+            margin-top: 30px; padding: 15px; background-color: #f8f8f8; border-radius: 8px; font-size: 16px; border: 1px solid #eee;
+        }
+        .share-button {
+            background-color: #25d366; color: white; border: none; padding: 10px 20px; font-size: 16px; border-radius: 5px; cursor: pointer; margin-top: 20px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: background-color 0.3s;
+        }
+        .share-button:hover { background-color: #128C7E; }
+    </style>
+</head>
+<body>
+    <!-- Custom Emoji Element -->
+    <img id="custom-emoji" class="custom-emoji" alt="Pointing Emoji">
+
+    <!-- Dialog Box -->
+    <div class="dialog-box" id="dialog-box">
+        <span>Let's carefully click this button to view your results.</span>
+    </div>
+
+    <!-- Initial Interface -->
+    <div class="container" id="main-interface">
+        <button class="check-button" id="check-button">Check Your Results</button>
+    </div>
+
+    <!-- Loading Screen (Used for REAL Preloading AND FAKE Loading) -->
+    <div class="loading" id="loading-screen">
+        <div class="spinner"></div>
+        <p id="loading-title">Loading assets...</p> <!-- Title might change -->
+        <p id="loading-text">Please wait, this might take a moment...</p> <!-- Text will change -->
+    </div>
+
+    <!-- Flipbook Image Placeholder -->
+    <img id="flipbook-image" alt="Jumpscare Frame"> <!-- Style applied via CSS -->
+
+    <!-- NO AUDIO ELEMENT -->
+
+    <!-- Prank Reveal -->
+    <div class="prank-reveal" id="prank-reveal">
+        <h1>LOL, you just got pranked! Happy April Fool's! 🎉</h1>
+        <p>Your face right now: 😱 → 😠 → 🤣</p>
+        <p>We totally got you!</p>
+        <div class="prank-stats">
+            <h3>Your Prank Stats:</h3>
+            <p>🏆 Scare Level: <b>Maximum Overdrive (Silent Flipbook!)</b></p>
+            <p>❤️ Heart Rate: <b>Probably 180 BPM</b></p>
+            <p>🎭 Drama Rating: <b>Oscar-Worthy Performance</b></p>
+            <p>👻 Jumpscare Score: <b>10/10 (Visually)</b></p>
+        </div>
+        <p>Don't be mad! April Fool's only comes once a year!</p>
+        <button class="share-button" id="share-button">
+            <span>Prank Your Friends!</span>
+        </button>
+    </div>
+
+    <script>
+        /****************************************************
+         * EMOJI AND PRANK CONFIGURATION
+         ****************************************************/
+        const PRANK_CONFIG = {
+            emoji: { path: "emoji.png", angle: 30, position: { offsetX: -150, offsetY: -220, reference: "button" }, size: { width: 200, height: 200 } },
+            dialog: { text: "Let's carefully click this button to view your results.", position: { offsetX: 240, offsetY: 50, alignment: "right", width: 220 } },
+            jumpscare: {
+                // --- Device-Specific Flipbook Settings ---
+                desktop: {
+                    framePath: "frames30/",         // Path for desktop frames
+                    totalFrames: 151              // <<< SET EXACT total frames in frames30/
+                },
+                mobile: {
+                    framePath: "frames_m30/",       // Path for mobile frames
+                    totalFrames: 145              // <<< SET EXACT total frames in frames_m30/
+                },
+                 // --- Common Flipbook Settings ---
+                framePattern: "frame_%04d.jpg",   // Assuming filename pattern is the same for both
+                startFrame: 70,                   // Frame to start from (1-based)
+                frameRate: 30,                    // Playback speed
+                // --- Delay FOR FAKE LOADING SCREEN ---
+                delay: { min: 5000, max: 6000 }    // Duration of fake loading screen (ms)
+            },
+             // --- FAKE Loading Screen Config ---
+             loading: {
+                 messages: [
+                     "Analyzing data...",
+                     "Processing request...",
+                     "Compiling results...",
+                     "Establishing secure connection...",
+                     "Almost ready...",
+                     "Finalizing..."
+                  ],
+                 messageInterval: 800 // How often fake loading message changes (ms)
+             }
+        };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // --- Element References ---
+            const mainInterface = document.getElementById('main-interface');
+            const dialogBox = document.getElementById('dialog-box');
+            const loadingScreen = document.getElementById('loading-screen');
+            const loadingTitle = document.getElementById('loading-title'); // Get title element
+            const loadingText = document.getElementById('loading-text');
+            const prankReveal = document.getElementById('prank-reveal');
+            const checkButton = document.getElementById('check-button');
+            const shareButton = document.getElementById('share-button');
+            const customEmoji = document.getElementById('custom-emoji');
+            const flipbookImage = document.getElementById('flipbook-image');
+            const dialogPointerStyle = document.createElement('style');
+            document.head.appendChild(dialogPointerStyle);
+
+            // --- Helper Function: Detect Mobile ---
+            function isMobileDevice() { return (window.innerWidth <= 768) || (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)); }
+
+            // --- Determine Device Type and Select Correct Config ---
+            const isMobile = isMobileDevice();
+            let activeJumpscareConfig = isMobile ? PRANK_CONFIG.jumpscare.mobile : PRANK_CONFIG.jumpscare.desktop;
+            if (!activeJumpscareConfig) { // Fallback if mobile config missing
+                 console.warn(`Mobile config missing, falling back to desktop.`);
+                 activeJumpscareConfig = PRANK_CONFIG.jumpscare.desktop;
+            }
+            const selectedFramePath = activeJumpscareConfig.framePath;
+            const selectedTotalFrames = activeJumpscareConfig.totalFrames;
+            console.log(`Device: ${isMobile ? 'Mobile' : 'Desktop'}. Path: ${selectedFramePath}, Frames: ${selectedTotalFrames}`);
+
+            // --- State Variables ---
+            let loadedFrameCount = 0;
+            let totalFramesToLoad = selectedTotalFrames;
+            let preloadedFrames = [];
+            let canStartPrank = false;
+            let animationFrameId = null;
+            let currentFrameIndex = 0;
+            let animationStartTime = 0;
+            const frameInterval = 1000 / PRANK_CONFIG.jumpscare.frameRate;
+            let effectiveStartFrame = Math.max(1, Math.min(PRANK_CONFIG.jumpscare.startFrame || 1, selectedTotalFrames));
+            if ((PRANK_CONFIG.jumpscare.startFrame || 1) !== effectiveStartFrame) {
+                console.warn(`StartFrame adjusted to ${effectiveStartFrame}.`);
+            }
+            const startFrameIndex = effectiveStartFrame - 1;
+            // Fake Loading Vars
+            let fakeLoadingInterval;
+            let fakeMessageIndex = 0;
+
+
+            // --- UI Setup Functions ---
+            function setupEmoji() { /* ... */ const config = PRANK_CONFIG.emoji; customEmoji.src = config.path; customEmoji.style.width = config.size.width + 'px'; customEmoji.style.height = config.size.height + 'px'; positionEmoji(); }
+            function positionEmoji() { /* ... */ if (!checkButton) return; const config = PRANK_CONFIG.emoji; const buttonRect = checkButton.getBoundingClientRect(); let referenceX, referenceY; if (config.position.reference === "button") { referenceX = buttonRect.left + window.scrollX + buttonRect.width / 2; referenceY = buttonRect.top + window.scrollY; } else { referenceX = window.innerWidth / 2 + window.scrollX; referenceY = window.innerHeight / 2 + window.scrollY; } const emojiX = referenceX + config.position.offsetX - (config.size.width / 2); const emojiY = referenceY + config.position.offsetY; customEmoji.style.left = emojiX + 'px'; customEmoji.style.top = emojiY + 'px'; customEmoji.style.transform = `rotate(${config.angle}deg)`; positionDialog(); }
+            function positionDialog() { /* ... */ if (!customEmoji || !dialogBox) return; const dialogConfig = PRANK_CONFIG.dialog; const emojiRect = customEmoji.getBoundingClientRect(); const dialogX = emojiRect.left + window.scrollX + dialogConfig.position.offsetX; const dialogY = emojiRect.top + window.scrollY + dialogConfig.position.offsetY; dialogBox.style.left = dialogX + 'px'; dialogBox.style.top = dialogY + 'px'; configurePointer(dialogConfig.position.alignment); }
+            function configurePointer(alignment) { /* ... */ let pointerCSS = ''; const pointerSize = 15; const dialogBorderColor = '#f8f8f8'; switch (alignment) { case "left": pointerCSS = `left: -${pointerSize}px; top: 50%; transform: translateY(-50%); border-right-color: ${dialogBorderColor}; border-width: ${pointerSize}px ${pointerSize}px ${pointerSize}px 0;`; break; case "right": pointerCSS = `right: -${pointerSize}px; top: 50%; transform: translateY(-50%); border-left-color: ${dialogBorderColor}; border-width: ${pointerSize}px 0 ${pointerSize}px ${pointerSize}px;`; break; case "top": pointerCSS = `top: -${pointerSize}px; left: 50%; transform: translateX(-50%); border-bottom-color: ${dialogBorderColor}; border-width: 0 ${pointerSize}px ${pointerSize}px ${pointerSize}px;`; break; case "bottom": default: pointerCSS = `bottom: -${pointerSize}px; left: 50%; transform: translateX(-50%); border-top-color: ${dialogBorderColor}; border-width: ${pointerSize}px ${pointerSize}px 0 ${pointerSize}px;`; break; } dialogPointerStyle.textContent = `.dialog-box:after { ${pointerCSS} }`; }
+
+
+            // --- FAKE Loading Message Function ---
+            function showFakeLoadingMessages() {
+                const messages = PRANK_CONFIG.loading.messages;
+                if (messages && messages.length > 0) {
+                    loadingText.textContent = messages[fakeMessageIndex]; // Update main text
+                    fakeMessageIndex = (fakeMessageIndex + 1) % messages.length;
+                } else {
+                    loadingText.textContent = "Processing..."; // Fallback
+                }
+            }
+
+            // --- REAL Preloading Logic ---
+            function preloadFlipbookAssets() {
+                console.log(`Preloading ${totalFramesToLoad} frames from ${selectedFramePath}...`);
+                mainInterface.style.display = 'none';
+                customEmoji.style.display = 'none';
+                dialogBox.style.display = 'none';
+                loadingScreen.style.display = 'flex'; // Show loading UI
+                loadingTitle.textContent = "Loading assets..."; // Set title for preloading
+                loadingText.textContent = `Loading asset 1/${totalFramesToLoad}...`; // Set initial text
+                checkButton.disabled = true;
+                checkButton.textContent = "Loading Assets...";
+                let loadPromises = [];
+
+                for (let i = 1; i <= totalFramesToLoad; i++) {
+                    const frameIndexPadded = i.toString().padStart(4, '0');
+                    const frameFilename = PRANK_CONFIG.jumpscare.framePattern.replace('%04d', frameIndexPadded);
+                    const frameFullPath = selectedFramePath + frameFilename;
+                    const img = new Image();
+                    preloadedFrames[i - 1] = img;
+                    const promise = new Promise((resolve) => {
+                        img.onload = () => {
+                            loadedFrameCount++;
+                            if (loadedFrameCount % 20 === 0 || loadedFrameCount === totalFramesToLoad) {
+                                loadingText.textContent = `Loading asset ${loadedFrameCount}/${totalFramesToLoad}...`; // Update loading progress text
+                            } resolve(); };
+                        img.onerror = () => { console.error(`Failed: ${frameFullPath}`); resolve(); };
+                        img.src = frameFullPath;
+                    });
+                    loadPromises.push(promise);
+                }
+
+                Promise.all(loadPromises).then(() => {
+                    console.log(`Preloading complete. Loaded ${loadedFrameCount}/${totalFramesToLoad} frames.`);
+                    if (loadedFrameCount < totalFramesToLoad) console.warn("Warning: Not all frames loaded!");
+                    canStartPrank = true;
+                    checkButton.disabled = false;
+                    checkButton.textContent = "Check Your Results";
+                    loadingScreen.style.display = 'none'; // Hide loading screen
+                    mainInterface.style.display = 'block'; // Show main UI
+                    customEmoji.style.display = 'block';
+                    dialogBox.style.display = 'block';
+                    console.log("Prank is ready.");
+                }).catch(error => {
+                    console.error("Preloading error:", error); alert("Failed to load assets."); loadingText.textContent = "Error!"; checkButton.textContent = "Error";
+                });
+            }
+
+            // --- Animation Loop ---
+            function flipbookLoop(timestamp) {
+                if (!animationStartTime) animationStartTime = timestamp;
+                const elapsedTime = timestamp - animationStartTime;
+                const framesPassed = Math.floor(elapsedTime / frameInterval);
+                const targetFrameIndex = startFrameIndex + framesPassed;
+
+                if (targetFrameIndex >= totalFramesToLoad) {
+                    stopFlipbook();
+                    showPrankReveal();
+                    return;
+                }
+
+                if (targetFrameIndex > currentFrameIndex) {
+                    currentFrameIndex = targetFrameIndex;
+                    if (preloadedFrames[currentFrameIndex] && preloadedFrames[currentFrameIndex].complete) {
+                         flipbookImage.src = preloadedFrames[currentFrameIndex].src;
+                    } else {
+                         const frameNumber = currentFrameIndex + 1;
+                         const frameIndexPadded = frameNumber.toString().padStart(4, '0');
+                         const frameFilename = PRANK_CONFIG.jumpscare.framePattern.replace('%04d', frameIndexPadded);
+                         flipbookImage.src = selectedFramePath + frameFilename;
+                         console.warn(`Frame ${frameNumber} fallback - preloaded issue?`);
+                    }
+                }
+                animationFrameId = requestAnimationFrame(flipbookLoop);
+            }
+
+            // --- Start/Stop Functions ---
+            function startFlipbook() {
+                console.log(`Starting flipbook from frame ${effectiveStartFrame} using ${selectedFramePath} (${PRANK_CONFIG.jumpscare.frameRate} FPS)...`);
+                currentFrameIndex = startFrameIndex -1;
+                animationStartTime = 0;
+
+                if (preloadedFrames[startFrameIndex] && preloadedFrames[startFrameIndex].complete) {
+                    flipbookImage.src = preloadedFrames[startFrameIndex].src;
+                    flipbookImage.style.display = 'block'; // Show image
+                    console.log(`Displaying initial frame: ${preloadedFrames[startFrameIndex].src}`);
+                    animationFrameId = requestAnimationFrame(flipbookLoop); // Start animation
+                } else {
+                    console.error(`Start frame ${effectiveStartFrame} not ready! Cannot start flipbook.`);
+                    alert(`Error: Start frame ${effectiveStartFrame} failed to load properly.`);
+                    document.body.style.backgroundColor = '#f0f0f0'; // Restore background
+                    // Maybe show reveal directly or reset UI
+                     showPrankReveal(); // Go to reveal if start fails
+                }
+            }
+
+            function stopFlipbook() {
+                if (animationFrameId) cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+                flipbookImage.style.display = 'none';
+                console.log("Flipbook stopped.");
+            }
+
+            // --- Button Click Logic (Includes FAKE Loading) ---
+             checkButton.addEventListener('click', function() {
+                 if (!canStartPrank) { alert("Assets still loading..."); return; }
+
+                 // 1. Hide main UI
+                 mainInterface.style.display = 'none';
+                 customEmoji.style.display = 'none';
+                 dialogBox.style.display = 'none';
+
+                 // 2. Show FAKE Loading Screen
+                 loadingTitle.textContent = "Processing Results..."; // Change title for fake loading
+                 loadingScreen.style.display = 'flex';
+                 showFakeLoadingMessages(); // Show first fake message
+                 fakeLoadingInterval = setInterval(showFakeLoadingMessages, PRANK_CONFIG.loading.messageInterval); // Start cycling
+
+                 // 3. Calculate Delay for Fake Loading duration
+                 const minDelay = PRANK_CONFIG.jumpscare.delay.min;
+                 const maxDelay = PRANK_CONFIG.jumpscare.delay.max;
+                 const randomDelay = minDelay + Math.random() * (maxDelay - minDelay);
+                 console.log(`Fake loading started. Flipbook jumpscare scheduled in ${randomDelay.toFixed(0)}ms`);
+
+                 // 4. Schedule Jumpscare AFTER fake loading delay
+                 setTimeout(() => {
+                     // 5. Stop & Hide Fake Loading
+                     clearInterval(fakeLoadingInterval);
+                     loadingScreen.style.display = 'none';
+
+                     // 6. Start Jumpscare
+                     document.body.style.backgroundColor = 'black'; // Blackout
+                     startFlipbook(); // Start the animation
+                     // Reveal now happens when flipbookLoop finishes
+
+                 }, randomDelay); // Use the delay from config
+             });
+
+
+            // --- Prank Reveal ---
+            function showPrankReveal() {
+                 stopFlipbook(); // Ensure animation is stopped
+                 prankReveal.style.display = 'block';
+                 document.body.style.backgroundColor = '#f0f0f0'; // Restore background
+                 createConfetti();
+             }
+
+            // --- Other Listeners/Functions ---
+             shareButton.addEventListener('click', function() { alert("Copy the URL from your browser's address bar..."); });
+             function createConfetti() { const confettiCount = 100; const colors = ['#ff4081', '#3f51b5', '#ffeb3b', '#4caf50', '#ff9800', '#e91e63', '#9c27b0']; const container = document.body; for (let i = 0; i < confettiCount; i++) { const confetti = document.createElement('div'); confetti.className = 'confetti'; confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)]; confetti.style.left = Math.random() * 100 + 'vw'; confetti.style.top = -20 + 'px'; confetti.style.opacity = '1'; confetti.style.transform = `rotate(${Math.random() * 360}deg)`; container.appendChild(confetti); const animation = confetti.animate([ { transform: `translateY(0px) rotate(${Math.random() * 360}deg)`, opacity: 1 }, { transform: `translateY(${window.innerHeight + 50}px) rotate(${Math.random() * 720}deg)`, opacity: 0 } ], { duration: 3000 + Math.random() * 4000, easing: 'ease-out', delay: Math.random() * 500 }); animation.onfinish = function() { confetti.remove(); }; } }
+
+
+            // --- Initial Setup Calls ---
+            dialogBox.querySelector('span').textContent = PRANK_CONFIG.dialog.text;
+            dialogBox.style.width = PRANK_CONFIG.dialog.width + 'px';
+            setupEmoji(); // Setup dialog/emoji UI
+            window.addEventListener('resize', positionEmoji); // Handle resizing
+            preloadFlipbookAssets(); // Start loading assets immediately
+
+        }); // End DOMContentLoaded
+    </script>
+</body>
+</html>
